@@ -1,0 +1,31 @@
+{
+  "name": "wikioasis-support",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Support forum triage bot for the WikiOasis Discord \u2014 AI categorisation, priority triage, and a live triage board.",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "check-config": "node dist/index.js --check-config",
+    "smoke": "npm run build && node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "discord.js": "^14.27.0",
+    "mysql2": "^3.15.4",
+    "openai": "^7.8.0",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}
