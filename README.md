@@ -7,8 +7,10 @@ It watches one forum channel and, for every thread that appears:
 - classifies it with the OpenAI API into **categories**, **teams** and one
   **priority**, all of which are defined in config rather than in code;
 - applies the matching **category tags** on the forum, so its own tag filter
-  works as a queue view — categories are the only thing tagged, since teams,
-  priorities and statuses are internal triage state;
+  works as a queue view — categories are the main thing tagged, since teams
+  and priorities are internal triage state; a status can optionally carry a
+  tag too (resolved does, by default), applied and removed as the thread's
+  status changes;
 - posts a **triage card** in the thread (Components V2) with the classification
   and the buttons staff act on;
 - keeps a **triage board** in a staff channel — a bulleted list broken into a
@@ -70,13 +72,15 @@ first; Discord's five-applied-tag limit is what caps it in practice) but
 | **Categories** | Forum tags on the thread, the triage card, and the board |
 | **Teams** | Board subsections and the triage card |
 | **Priorities** | Board ordering and the card's accent colour |
-| **Statuses** | Board rows and the triage card |
+| **Statuses** | Board rows, the triage card, and a forum tag for any status configured with one (`resolved` by default) |
 
-Only categories become forum tags. Teams, priorities and statuses are triage
-state that staff read on the board — they are not put on the reporter's thread.
-That also means all but one of Discord's five applied-tag slots are available
-for categories, and the last is left free for a tag someone adds by hand (the
-bot never evicts a manual tag to make room for its own).
+Categories always become forum tags; teams and priorities never do — that
+triage state stays on the board and the triage card. A status becomes a forum
+tag only if its config entry sets `tag` (see `statuses.resolved.tag` below);
+set it to `null` to keep a status purely internal. Each status tag the bot
+manages eats into the same five-applied-tag budget as categories, so with the
+default resolved tag enabled, four slots are left for categories and manual
+tags (the bot never evicts a tag it doesn't manage to make room for its own).
 
 ### Redirecting a category elsewhere
 

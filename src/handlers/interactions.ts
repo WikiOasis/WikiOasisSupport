@@ -1,6 +1,6 @@
 import { MessageFlags, type ButtonInteraction } from 'discord.js';
 import type { Ctx } from '../service.js';
-import { isStaff, refreshThread, runTriage, starterInput } from '../service.js';
+import { closeResolvedThread, isStaff, refreshThread, runTriage, starterInput } from '../service.js';
 import * as repo from '../db/threads.js';
 import { log } from '../logger.js';
 import { scheduleBoardRefresh } from '../discord/board.js';
@@ -76,4 +76,6 @@ export async function onButton(ctx: Ctx, interaction: ButtonInteraction): Promis
   const after = await repo.getThread(threadId);
   if (after) await refreshThread(ctx, thread, after);
   else scheduleBoardRefresh(ctx.client, ctx.cfg);
+
+  if (action === 'resolve') await closeResolvedThread(ctx, thread);
 }

@@ -98,7 +98,7 @@ export function resolvedByUserNotice(threadId: string, quote: string): MessageCr
     text(
       `You said:\n> ${truncate(quote.replace(/\n/g, ' '), 300)}\n\n` +
         'so this thread is now marked resolved. If that was wrong, or the problem comes ' +
-        'back, just reply here — that reopens it.',
+        'back, just reply here, that reopens it.',
     ),
   );
   c.addActionRowComponents(
@@ -113,8 +113,7 @@ export function closedNotice(threadId: string): MessageCreateOptions {
     text('## ✅ Marked resolved'),
     separator(),
     text(
-      'This thread was closed, so it has been marked resolved and taken off the triage ' +
-        'board. Reply here if you still need help — that reopens it.',
+      'This thread was closed, so it has been marked resolved. Reply here if you still need help — that reopens it.',
     ),
   );
   c.addActionRowComponents(

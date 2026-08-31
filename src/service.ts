@@ -1,11 +1,11 @@
-import type { AnyThreadChannel, Client, GuildMember, Message } from 'discord.js';
+import { ChannelType, type AnyThreadChannel, type Client, type GuildMember, type Message } from 'discord.js';
 import type { Config, StatusKey } from './config.js';
 import { log } from './logger.js';
 import { triageThread, type TriageInput } from './ai/triage.js';
 import * as repo from './db/threads.js';
 import type { TrackedThread } from './db/threads.js';
 import { applyTags, type TagIndex } from './discord/tags.js';
-import { scheduleBoardRefresh } from './discord/board.js';
+import { renderBoard, scheduleBoardRefresh } from './discord/board.js';
 import { knownIssueNotice, recategorisedNotice, redirectNotice, triageCard } from './discord/render.js';
 import { getKnownIssue, listKnownIssues } from './db/knownIssues.js';
 
@@ -23,7 +23,7 @@ export function isStaff(cfg: Config, member: GuildMember | null): boolean {
 }
 
 export async function syncThreadTags(ctx: Ctx, thread: AnyThreadChannel, t: TrackedThread): Promise<void> {
-  await applyTags(thread, ctx.tags, { categories: t.categories });
+  await applyTags(thread, ctx.tags, { categories: t.categories, status: t.status });
 }
 
 async function upsertTriageCard(ctx: Ctx, thread: AnyThreadChannel, t: TrackedThread): Promise<void> {
@@ -191,6 +191,37 @@ export async function refreshThread(ctx: Ctx, thread: AnyThreadChannel, t: Track
   await syncThreadTags(ctx, thread, t);
   await upsertTriageCard(ctx, thread, t);
   scheduleBoardRefresh(ctx.client, ctx.cfg);
+}
+
+export async function closeResolvedThread(ctx: Ctx, thread: AnyThreadChannel): Promise<void> {
+  if (thread.archived) return;
+  await thread.setArchived(true).catch((err) =>
+    log.warn('could not archive resolved thread', { threadId: thread.id, err }),
+  );
+}
+
+export async function rebuildBoard(ctx: Ctx): Promise<{ closed: number; retagged: number }> {
+  let closed = 0;
+  let retagged = 0;
+
+  const forum = await ctx.client.channels.fetch(ctx.cfg.forum_channel_id).catch(() => null);
+  if (forum?.type === ChannelType.GuildForum) {
+    const active = await forum.threads.fetchActive().catch(() => null);
+    for (const thread of active?.threads.values() ?? []) {
+      const tracked = await repo.getThread(thread.id);
+      if (!tracked) continue;
+      if (tracked.status === 'resolved') {
+        await closeResolvedThread(ctx, thread);
+        closed++;
+      } else {
+        await syncThreadTags(ctx, thread, tracked);
+        retagged++;
+      }
+    }
+  }
+
+  await renderBoard(ctx.client, ctx.cfg);
+  return { closed, retagged };
 }
 
 export async function starterInput(thread: AnyThreadChannel): Promise<TriageInput> {

@@ -8,13 +8,11 @@ import {
 } from 'discord.js';
 import type { Config } from './config.js';
 import type { Ctx } from './service.js';
-import { isStaff, refreshThread, runTriage, starterInput } from './service.js';
+import { closeResolvedThread, conversationInput, isStaff, rebuildBoard, refreshThread, runTriage, starterInput } from './service.js';
 import * as repo from './db/threads.js';
 import { log } from './logger.js';
-import { renderBoard } from './discord/board.js';
 import { V2_FLAGS, container, text } from './discord/components.js';
 import { buildKnownIssueCommand, onKnownIssueCommand } from './commands/knownIssues.js';
-import { conversationInput } from './service.js';
 
 const reply = (body: string) => ({
   components: [container(null, text(body))],
@@ -89,8 +87,10 @@ export async function onCommand(ctx: Ctx, interaction: ChatInputCommandInteracti
 
   if (sub === 'board') {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-    await renderBoard(ctx.client, ctx.cfg);
-    await interaction.editReply(reply('Board rebuilt.'));
+    const { closed, retagged } = await rebuildBoard(ctx);
+    await interaction.editReply(
+      reply(`Board rebuilt. Closed ${closed} resolved thread${closed === 1 ? '' : 's'}, retagged ${retagged}.`),
+    );
     return;
   }
 
@@ -213,6 +213,7 @@ export async function onCommand(ctx: Ctx, interaction: ChatInputCommandInteracti
 
   const after = await repo.getThread(thread.id);
   if (after) await refreshThread(ctx, thread, after);
+  if (sub === 'resolve') await closeResolvedThread(ctx, thread);
   if (!interaction.replied && !interaction.deferred) {
     await interaction.reply(reply('Done.'));
   }

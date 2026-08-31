@@ -44,6 +44,7 @@ const Priority = z.object({
 const StatusStyle = z.object({
   label: z.string().min(1),
   emoji: z.string().default(''),
+  tag: z.string().min(1).max(20).nullable().default(null),
 });
 
 export const ConfigSchema = z.object({
@@ -58,9 +59,9 @@ export const ConfigSchema = z.object({
   priorities: z.array(Priority).min(1),
 
   statuses: z.object({
-    waiting_on_team: StatusStyle.default({ label: 'Waiting on team', emoji: '🟦' }),
-    waiting_on_user: StatusStyle.default({ label: 'Waiting on user', emoji: '⏳' }),
-    resolved: StatusStyle.default({ label: 'Resolved', emoji: '✅' }),
+    waiting_on_team: StatusStyle.default({ label: 'Waiting on team', emoji: '🟦', tag: null }),
+    waiting_on_user: StatusStyle.default({ label: 'Waiting on user', emoji: '⏳', tag: null }),
+    resolved: StatusStyle.default({ label: 'Resolved', emoji: '✅', tag: 'Resolved' }),
   }).prefault({}),
 
   prompt: z.object({
@@ -220,10 +221,12 @@ export function loadConfig(path: string): Config {
     }
   }
 
-  if (cfg.manage_tags && cfg.categories.length > 20) {
+  const statusTagCount = Object.values(cfg.statuses).filter((s) => s.tag).length;
+  const managedTagCount = cfg.categories.length + statusTagCount;
+  if (cfg.manage_tags && managedTagCount > 20) {
     problems.push(
-      `${cfg.categories.length} categories need a forum tag each, but a Discord ` +
-        'forum allows at most 20',
+      `${cfg.categories.length} categories and ${statusTagCount} status tags need a forum tag ` +
+        `each (${managedTagCount} total), but a Discord forum allows at most 20`,
     );
   }
 
